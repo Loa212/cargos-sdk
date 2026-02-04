@@ -1,0 +1,21 @@
+# Bun Configuration
+# https://bun.sh/docs/runtime/configuration
+
+[test]
+# Test runner configuration
+root = "src"
+preload = []
+timeout = 5000
+
+[install]
+# Installation configuration
+optional = false
+dev = true
+peer = true
+workspaces = false
+
+# Root directory configuration
+root = "."
+
+# Cache configuration
+cache = { dir = ".bun/cache" }
