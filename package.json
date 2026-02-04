@@ -19,7 +19,7 @@
 		"LICENSE"
 	],
 	"scripts": {
-		"build": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration && bun build ./src/cargos-sdk.ts --outdir dist --format cjs --outfile cargos-sdk.cjs",
+		"build": "bun build ./src/cargos-sdk.ts --outdir dist --format esm && bun build ./src/cargos-sdk.ts --outfile dist/cargos-sdk.cjs --format cjs && tsc --emitDeclarationOnly --declaration --outDir dist",
 		"build:esm": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration",
 		"build:cjs": "bun build ./src/cargos-sdk.ts --outdir dist --format cjs --outfile cargos-sdk.cjs",
 		"build:watch": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration --watch",
