@@ -6,6 +6,10 @@
       "name": "cargos-sdk",
       "devDependencies": {
         "@biomejs/biome": "^2.3.14",
+        "@biomejs/cli-darwin-arm64": "2.3.14",
+        "@biomejs/cli-darwin-x64": "2.3.14",
+        "@biomejs/cli-linux-arm64": "2.3.14",
+        "@biomejs/cli-linux-x64": "2.3.14",
         "@types/bun": "latest",
         "typescript": "^5.4.0",
       },
