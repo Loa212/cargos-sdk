@@ -143,7 +143,7 @@ export enum TableId {
  * - First 32 chars: AES key
  * - Last 16 chars: IV
  */
-function encryptAES(token: string, apiKey: string): string {
+export function encryptAES(token: string, apiKey: string): string {
 	if (!apiKey || apiKey.length < 48) {
 		throw new Error(
 			"API Key must be at least 48 characters for AES encryption",
@@ -168,7 +168,7 @@ function encryptAES(token: string, apiKey: string): string {
 // CONTRACT FORMATTER
 // ============================================================================
 
-function padString(
+export function padString(
 	value: string,
 	length: number,
 	fillChar: string = " ",
@@ -179,11 +179,11 @@ function padString(
 	return value.padEnd(length, fillChar);
 }
 
-function padNumber(value: number, length: number): string {
+export function padNumber(value: number, length: number): string {
 	return String(value).padStart(length, "0");
 }
 
-function formatDate(date: Date, withTime: boolean = false): string {
+export function formatDate(date: Date, withTime: boolean = false): string {
 	const day = String(date.getDate()).padStart(2, "0");
 	const month = String(date.getMonth() + 1).padStart(2, "0");
 	const year = date.getFullYear();
@@ -197,7 +197,7 @@ function formatDate(date: Date, withTime: boolean = false): string {
 	return `${day}/${month}/${year}`;
 }
 
-function formatDriver(driver: Driver): string {
+export function formatDriver(driver: Driver): string {
 	let record = "";
 
 	// CONDUCENTE_COGNOME (50 chars)
@@ -248,7 +248,7 @@ function formatDriver(driver: Driver): string {
  * Format rental contract into fixed-width string (1505 characters)
  * Following the CARGOS tracciato record specification
  */
-function formatContract(contract: RentalContract): string {
+export function formatContract(contract: RentalContract): string {
 	let record = "";
 
 	// CONTRATTO_ID (50 chars)

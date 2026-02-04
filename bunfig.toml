@@ -4,7 +4,6 @@
 [test]
 # Test runner configuration
 root = "src"
-preload = []
 timeout = 5000
 
 [install]
