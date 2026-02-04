@@ -1,6 +1,6 @@
 {
 	"name": "cargos-sdk",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"description": "TypeScript SDK for Italian State Police CARGOS car rental contract submission service",
 	"type": "module",
 	"main": "./dist/cargos-sdk.js",
@@ -52,12 +52,12 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/yourusername/cargos-sdk.git"
+		"url": "https://github.com/Loa212/cargos-sdk.git"
 	},
 	"bugs": {
-		"url": "https://github.com/yourusername/cargos-sdk/issues"
+		"url": "https://github.com/Loa212/cargos-sdk/issues"
 	},
-	"homepage": "https://github.com/yourusername/cargos-sdk#readme",
+	"homepage": "https://github.com/Loa212/cargos-sdk#readme",
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",
 		"@biomejs/cli-darwin-arm64": "2.3.14",
