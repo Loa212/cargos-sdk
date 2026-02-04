@@ -1,5 +1,7 @@
 # CARGOS API TypeScript SDK
 
+[![Publish to npm](https://github.com/Loa212/cargos-sdk/actions/workflows/publish.yml/badge.svg)](https://github.com/Loa212/cargos-sdk/actions/workflows/publish.yml)
+
 > **⚠️ Disclaimer**: This SDK is for **personal/internal use only**. It is not production-ready, not officially supported, and comes with no guarantees. Use at your own risk.
 
 TypeScript SDK for the **Cargos Polizia di Stato** service - a mandatory system for Italian car rental companies to report rental contracts to the Italian State Police for terrorism prevention and public safety purposes.
