@@ -1,5 +1,6 @@
 # CARGOS API TypeScript SDK
 
+[![npm version](https://img.shields.io/npm/v/cargos-sdk.svg)](https://www.npmjs.com/package/cargos-sdk)
 [![Publish to npm](https://github.com/Loa212/cargos-sdk/actions/workflows/publish.yml/badge.svg)](https://github.com/Loa212/cargos-sdk/actions/workflows/publish.yml)
 
 > **⚠️ Disclaimer**: This SDK is for **personal/internal use only**. It is not production-ready, not officially supported, and comes with no guarantees. Use at your own risk.
