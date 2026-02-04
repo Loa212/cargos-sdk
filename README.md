@@ -1,5 +1,7 @@
 # CARGOS API TypeScript SDK
 
+> **⚠️ Disclaimer**: This SDK is for **personal/internal use only**. It is not production-ready, not officially supported, and comes with no guarantees. Use at your own risk.
+
 TypeScript SDK for the **Cargos Polizia di Stato** service - a mandatory system for Italian car rental companies to report rental contracts to the Italian State Police for terrorism prevention and public safety purposes.
 
 **Legal Basis**: Art. 17, Law Decree October 4, 2018, n. 113
