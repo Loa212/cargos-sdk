@@ -1,6 +1,6 @@
 {
 	"name": "cargos-sdk",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"description": "TypeScript SDK for Italian State Police CARGOS car rental contract submission service",
 	"type": "module",
 	"main": "./dist/cargos-sdk.js",
@@ -19,7 +19,7 @@
 		"LICENSE"
 	],
 	"scripts": {
-		"build": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration && bun build ./src/cargos-sdk.ts --outdir dist --format cjs --outfile cargos-sdk.cjs",
+		"build": "bun build ./src/cargos-sdk.ts --outdir dist --format esm && bun build ./src/cargos-sdk.ts --outfile dist/cargos-sdk.cjs --format cjs && tsc --emitDeclarationOnly --declaration --outDir dist",
 		"build:esm": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration",
 		"build:cjs": "bun build ./src/cargos-sdk.ts --outdir dist --format cjs --outfile cargos-sdk.cjs",
 		"build:watch": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration --watch",
@@ -52,12 +52,12 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/yourusername/cargos-sdk.git"
+		"url": "https://github.com/Loa212/cargos-sdk.git"
 	},
 	"bugs": {
-		"url": "https://github.com/yourusername/cargos-sdk/issues"
+		"url": "https://github.com/Loa212/cargos-sdk/issues"
 	},
-	"homepage": "https://github.com/yourusername/cargos-sdk#readme",
+	"homepage": "https://github.com/Loa212/cargos-sdk#readme",
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",
 		"@biomejs/cli-darwin-arm64": "2.3.14",
