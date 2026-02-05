@@ -19,7 +19,7 @@
 		"LICENSE"
 	],
 	"scripts": {
-		"build": "bun build ./src/cargos-sdk.ts --outdir dist --format esm && bun build ./src/cargos-sdk.ts --outfile dist/cargos-sdk.cjs --format cjs && tsc --emitDeclarationOnly --declaration --outDir dist",
+		"build": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --target node --external 'node:*' && bun build ./src/cargos-sdk.ts --outfile dist/cargos-sdk.cjs --format cjs --target node --external 'node:*' && tsc --emitDeclarationOnly --declaration --outDir dist",
 		"build:esm": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration",
 		"build:cjs": "bun build ./src/cargos-sdk.ts --outdir dist --format cjs --outfile cargos-sdk.cjs",
 		"build:watch": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration --watch",
@@ -32,7 +32,8 @@
 		"check": "biome check src",
 		"check:fix": "biome check --write src",
 		"type-check": "tsc --noEmit",
-		"ci": "bun run check && bun run type-check && bun run build && bun test"
+		"ci": "bun run check && bun run type-check && bun run build && bun test",
+		"npm-dry-run": "npm pack --dry-run"
 	},
 	"keywords": [
 		"cargos",
