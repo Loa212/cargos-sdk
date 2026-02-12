@@ -1,17 +1,31 @@
 import { describe, expect, test } from "bun:test";
 import {
+	BUNDLED_TABLES_METADATA,
+	DOCUMENT_TYPES,
 	DocumentType,
 	type Driver,
 	encryptAES,
 	formatContract,
 	formatDate,
 	formatDriver,
+	getDocumentTypeCode,
+	getLocationCode,
+	getPaymentTypeCode,
+	getVehicleTypeCode,
 	isValidContractData,
+	LOCATIONS,
+	lookupDocumentType,
+	lookupLocation,
+	lookupPaymentType,
+	lookupVehicleType,
+	PAYMENT_TYPES,
 	PaymentType,
 	padNumber,
 	padString,
 	parseTableCSV,
 	type RentalContract,
+	TABLES_LAST_UPDATED_AT,
+	VEHICLE_TYPES,
 	VehicleType,
 } from "./cargos-sdk";
 
@@ -361,6 +375,43 @@ describe("parseTableCSV", () => {
 		// Should only have the valid line
 		expect(result.size).toBe(1);
 		expect(result.get("001")).toBe("Valid");
+	});
+});
+
+// ============================================================================
+// BUNDLED TABLES
+// ============================================================================
+
+describe("bundled tables", () => {
+	test("exposes static table constants", () => {
+		expect(LOCATIONS.ROMA).toBeTypeOf("number");
+		expect(Object.keys(LOCATIONS).length).toBeGreaterThan(1000);
+		expect(PAYMENT_TYPES["Carta di Credito"]).toBe("0");
+		expect(VEHICLE_TYPES.Autovetture).toBe("0");
+		expect(DOCUMENT_TYPES["PATENTE DI GUIDA"]).toBe("PATEN");
+	});
+
+	test("supports case-insensitive lookups by label", () => {
+		expect(getLocationCode("roma")).toBe(LOCATIONS.ROMA);
+		expect(getPaymentTypeCode("contanti")).toBe("1");
+		expect(getVehicleTypeCode("autovetture")).toBe("0");
+		expect(getDocumentTypeCode("patente di guida")).toBe("PATEN");
+	});
+
+	test("supports reverse lookups by code", () => {
+		expect(lookupLocation(LOCATIONS.ROMA)).toBe("ROMA");
+		expect(lookupPaymentType("1")).toBe("Contanti");
+		expect(lookupVehicleType("0")).toBe("Autovetture");
+		expect(lookupDocumentType("PATEN")).toBe("PATENTE DI GUIDA");
+	});
+
+	test("exposes tables metadata with last updated timestamp", () => {
+		expect(TABLES_LAST_UPDATED_AT).toMatch(
+			/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
+		);
+		expect(BUNDLED_TABLES_METADATA.sources.locations.fileName).toBe(
+			"LUOGHI.csv",
+		);
 	});
 });
 

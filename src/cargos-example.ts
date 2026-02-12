@@ -1,6 +1,7 @@
 import {
 	CargosClient,
 	DocumentType,
+	getLocationCode,
 	isValidContractData,
 	PaymentType,
 	parseTableCSV,
@@ -19,6 +20,8 @@ async function exampleBasicUsage() {
 		process.env.CARGOS_PASSWORD || "your_password",
 		process.env.CARGOS_API_KEY || "your_api_key_48_chars_min",
 	);
+	const romeCode = getLocationCode("ROMA") ?? 412058091;
+	const italyCode = getLocationCode("ITALIA") ?? 100000100;
 
 	// Create a rental contract
 	const contract: RentalContract = {
@@ -26,16 +29,16 @@ async function exampleBasicUsage() {
 		createdDate: new Date("2024-02-01T10:30:00"),
 		paymentType: PaymentType.CARD,
 		checkoutDate: new Date("2024-02-01T14:00:00"),
-		checkoutLocation: { code: 80 }, // Rome (Questura di Roma)
+		checkoutLocation: { code: romeCode }, // Rome (Questura di Roma)
 		checkoutAddress: "Via del Castro Pretorio 10, Roma",
 		checkinDate: new Date("2024-02-08T18:00:00"),
-		checkinLocation: { code: 80 },
+		checkinLocation: { code: romeCode },
 		checkinAddress: "Via del Castro Pretorio 10, Roma",
 		operatorId: "OP-001",
 		agency: {
 			id: "AG-ROME-001",
 			name: "RentCar Roma Center",
-			location: { code: 80 },
+			location: { code: romeCode },
 			address: "Via del Castro Pretorio 10, Roma",
 			phone: "+39-06-12345678",
 		},
@@ -52,15 +55,15 @@ async function exampleBasicUsage() {
 			surname: "Rossi",
 			name: "Mario",
 			birthDate: new Date("1980-05-15"),
-			birthPlace: { code: 80 }, // Rome
-			citizenship: { code: 380 }, // Italy
-			residencePlace: { code: 80 },
+			birthPlace: { code: romeCode }, // Rome
+			citizenship: { code: italyCode }, // Italy
+			residencePlace: { code: romeCode },
 			residenceAddress: "Via Roma 5, Roma",
 			documentType: DocumentType.ID_CARD,
 			documentNumber: "AA123456789",
-			documentIssuePlace: { code: 80 },
+			documentIssuePlace: { code: romeCode },
 			licenseNumber: "IT1234567890",
-			licenseIssuePlace: { code: 80 },
+			licenseIssuePlace: { code: romeCode },
 			phone: "+39-3-1234567890",
 		},
 	};

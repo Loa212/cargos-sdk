@@ -614,3 +614,5 @@ export function isValidContractData(contract: RentalContract): string[] {
 
 	return errors;
 }
+
+export * from "./tables";
