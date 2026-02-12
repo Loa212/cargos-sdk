@@ -1,0 +1,27 @@
+{
+	"generatedAt": "2026-02-12T19:40:19.584Z",
+	"tablesLastUpdatedAt": "2026-02-12T19:36:00.660Z",
+	"sourceDirectory": "scripts/tables-csv",
+	"sources": {
+		"paymentTypes": {
+			"fileName": "TIPO_PAGAMENTO.csv",
+			"lastModifiedAt": "2026-02-12T19:36:00.609Z",
+			"entries": 6
+		},
+		"locations": {
+			"fileName": "LUOGHI.csv",
+			"lastModifiedAt": "2026-02-12T19:36:00.471Z",
+			"entries": 8126
+		},
+		"vehicleTypes": {
+			"fileName": "TIPO_VEICOLO.csv",
+			"lastModifiedAt": "2026-02-12T19:36:00.660Z",
+			"entries": 10
+		},
+		"documentTypes": {
+			"fileName": "TIPO_DOCUMENTO.csv",
+			"lastModifiedAt": "2026-02-12T19:36:00.540Z",
+			"entries": 7
+		}
+	}
+}

@@ -19,6 +19,8 @@
 		"LICENSE"
 	],
 	"scripts": {
+		"download:tables": "bun run ./scripts/parse-tables.ts --download-only",
+		"generate:tables": "bun run ./scripts/parse-tables.ts",
 		"build": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --target node --external 'node:*' && bun build ./src/cargos-sdk.ts --outfile dist/cargos-sdk.cjs --format cjs --target node --external 'node:*' && tsc --emitDeclarationOnly --declaration --outDir dist",
 		"build:esm": "bun build ./src/cargos-sdk.ts --outdir dist --format esm --declaration",
 		"build:cjs": "bun build ./src/cargos-sdk.ts --outdir dist --format cjs --outfile cargos-sdk.cjs",

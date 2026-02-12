@@ -28,7 +28,8 @@ The system verifies driver eligibility and checks for security concerns in real-
 - ✅ Contract validation before submission
 - ✅ Batch processing (automatic chunking for 100+ contracts)
 - ✅ Check contracts before sending
-- ✅ Download and parse coding tables
+- ✅ Bundled static coding tables with lookup helpers
+- ✅ Runtime table download methods for fresh snapshots
 - ✅ Comprehensive error handling
 
 ## Installation
@@ -43,6 +44,32 @@ Or import directly:
 
 ```typescript
 import { CargosClient, RentalContract, PaymentType } from './cargos-sdk';
+```
+
+## Bundled Reference Tables
+
+Reference tables are bundled in the SDK and can be used without authentication:
+
+```typescript
+import { LOCATIONS, getLocationCode, lookupLocation } from 'cargos-sdk';
+
+const romeCode = getLocationCode('ROMA'); // 412058091
+const cityName = lookupLocation(412058091); // "ROMA"
+const italyCode = LOCATIONS['ITALIA']; // 100000100
+```
+
+Table snapshot metadata is published in [`TABLES_LAST_UPDATED.md`](./TABLES_LAST_UPDATED.md). If the snapshot looks stale, please open an issue.
+
+To regenerate the bundled snapshot after replacing CSV exports in `scripts/tables-csv/`:
+
+```bash
+pnpm run generate:tables
+```
+
+To download the latest CSVs from CARGOS first:
+
+```bash
+pnpm run download:tables
 ```
 
 ## Quick Start
@@ -199,7 +226,7 @@ Available tables:
 
 ### getAllTables()
 
-Download all coding tables at once:
+Download all coding tables at once (useful when you need a fresh runtime snapshot):
 
 ```typescript
 const tables = await client.getAllTables();
@@ -263,13 +290,13 @@ interface Location {
 ```
 
 Common location codes:
-- Rome (Lazio): 80
-- Milan (Lombardy): 108
-- Naples (Campania): 63
-- Turin (Piedmont): 1
-- Florence (Tuscany): 48
+- ROMA: 412058091
+- MILANO: 403015146
+- NAPOLI: 415063049
+- TORINO: 401001272
+- FIRENZE: 409048017
 
-Download the full `LOCATIONS` table to get all codes.
+Use bundled `LOCATIONS` for offline lookups, or `getAllTables()` if you need a fresh runtime export.
 
 ### Driver
 
@@ -371,7 +398,7 @@ Checks:
 1. **Prepare** contract data from your rental management system
 2. **Validate** with `isValidContractData()`
 3. **Check** with `checkContracts()` (optional but recommended)
-4. **Download** tables if you need to reference codes with `getAllTables()`
+4. **Use bundled tables** (`LOCATIONS`, `getLocationCode()`, etc.) for local lookups
 5. **Send** with `sendContracts()` or `batchSendContracts()`
 6. **Store** transaction IDs for audit trail
 
@@ -529,7 +556,8 @@ All communication with Cargos service is over HTTPS (TLS 1.2+).
 
 ### "Invalid location code" Error
 
-- Download `LOCATIONS` table to see valid codes
+- Check bundled `LOCATIONS` first for valid codes
+- If needed, refresh from API with `getAllTables()`
 - Location codes reference specific police jurisdictions
 - Use exact numeric code from the table
 
@@ -550,6 +578,7 @@ All communication with Cargos service is over HTTPS (TLS 1.2+).
 See `cargos-example.ts` for:
 - Basic single contract submission
 - Batch processing (100+ contracts)
+- Bundled table lookups
 - Downloading and parsing tables
 - Secondary driver handling
 - Error handling patterns
@@ -580,6 +609,11 @@ function isValidContractData(contract: RentalContract): string[];
 
 // Parse table CSV (# separated, UTF-8)
 function parseTableCSV(data: Buffer): Map<string, string>;
+
+// Bundled table lookups
+function getLocationCode(locationName: string): number | undefined;
+function lookupLocation(code: number): string | undefined;
+const TABLES_LAST_UPDATED_AT: string;
 ```
 
 ## Technical Details
@@ -639,7 +673,7 @@ This SDK implements the technical specifications from:
 For issues or questions:
 
 1. Check `checkContracts()` output for validation details
-2. Download location/reference tables to verify codes
+2. Check [`TABLES_LAST_UPDATED.md`](./TABLES_LAST_UPDATED.md) and open an issue if an update is needed
 3. Review CARGOS documentation: https://cargos.poliziadistato.it
 4. Contact your provincial Questura
 
