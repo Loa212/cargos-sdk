@@ -1,26 +1,26 @@
 {
-	"generatedAt": "2026-02-12T19:40:19.584Z",
-	"tablesLastUpdatedAt": "2026-02-12T19:36:00.660Z",
+	"generatedAt": "2026-07-10T16:02:05.715Z",
+	"tablesLastUpdatedAt": "2026-07-10T16:02:05.714Z",
 	"sourceDirectory": "scripts/tables-csv",
 	"sources": {
 		"paymentTypes": {
 			"fileName": "TIPO_PAGAMENTO.csv",
-			"lastModifiedAt": "2026-02-12T19:36:00.609Z",
+			"lastModifiedAt": "2026-07-10T16:02:05.666Z",
 			"entries": 6
 		},
 		"locations": {
 			"fileName": "LUOGHI.csv",
-			"lastModifiedAt": "2026-02-12T19:36:00.471Z",
+			"lastModifiedAt": "2026-07-10T16:02:05.567Z",
 			"entries": 8126
 		},
 		"vehicleTypes": {
 			"fileName": "TIPO_VEICOLO.csv",
-			"lastModifiedAt": "2026-02-12T19:36:00.660Z",
+			"lastModifiedAt": "2026-07-10T16:02:05.714Z",
 			"entries": 10
 		},
 		"documentTypes": {
 			"fileName": "TIPO_DOCUMENTO.csv",
-			"lastModifiedAt": "2026-02-12T19:36:00.540Z",
+			"lastModifiedAt": "2026-07-10T16:02:05.620Z",
 			"entries": 7
 		}
 	}
