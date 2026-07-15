@@ -27,7 +27,7 @@ async function exampleBasicUsage() {
 	const contract: RentalContract = {
 		id: "RENT-2024-001234", // Unique contract ID
 		createdDate: new Date("2024-02-01T10:30:00"),
-		paymentType: PaymentType.CARD,
+		paymentType: PaymentType.CREDIT_CARD,
 		checkoutDate: new Date("2024-02-01T14:00:00"),
 		checkoutLocation: { code: romeCode }, // Rome (Questura di Roma)
 		checkoutAddress: "Via del Castro Pretorio 10, Roma",
@@ -128,7 +128,8 @@ async function exampleBatchProcessing() {
 		const contract: RentalContract = {
 			id: `RENT-2024-${String(i).padStart(6, "0")}`,
 			createdDate: new Date(),
-			paymentType: i % 2 === 0 ? PaymentType.CARD : PaymentType.BANK,
+			paymentType:
+				i % 2 === 0 ? PaymentType.CREDIT_CARD : PaymentType.BANK_TRANSFER,
 			checkoutDate: new Date(),
 			checkoutLocation: { code: 80 },
 			checkoutAddress: `Via Roma ${i}, Roma`,
@@ -239,7 +240,7 @@ async function exampleWithSecondaryDriver() {
 	const contract: RentalContract = {
 		id: "RENT-2024-WITH-SECONDARY",
 		createdDate: new Date(),
-		paymentType: PaymentType.CARD,
+		paymentType: PaymentType.CREDIT_CARD,
 		checkoutDate: new Date(),
 		checkoutLocation: { code: 80 },
 		checkoutAddress: "Via del Castro Pretorio 10, Roma",

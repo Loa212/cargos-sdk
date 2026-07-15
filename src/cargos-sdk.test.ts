@@ -55,7 +55,7 @@ function createTestContract(
 	return {
 		id: "CONTRACT-001",
 		createdDate: new Date(2024, 0, 15, 10, 30), // Jan 15, 2024 10:30
-		paymentType: PaymentType.CARD,
+		paymentType: PaymentType.CREDIT_CARD,
 		checkoutDate: new Date(2024, 0, 15, 11, 0),
 		checkoutLocation: { code: 123456789, name: "Roma Fiumicino" },
 		checkoutAddress: "Via dell'Aeroporto 1",
@@ -274,8 +274,8 @@ describe("formatContract", () => {
 	test("includes payment type as single character", () => {
 		const contract = createTestContract({ paymentType: PaymentType.CASH });
 		const result = formatContract(contract);
-		// Position 66 (after 50 id + 16 date)
-		expect(result.charAt(66)).toBe("C");
+		// Position 66 (after 50 id + 16 date). CASH = "1" (TIPO_PAGAMENTO code).
+		expect(result.charAt(66)).toBe("1");
 	});
 
 	test("formats checkout date with time", () => {
@@ -412,6 +412,35 @@ describe("bundled tables", () => {
 		expect(BUNDLED_TABLES_METADATA.sources.locations.fileName).toBe(
 			"LUOGHI.csv",
 		);
+	});
+
+	// The enum members are serialized VERBATIM into the tracciato record, so each
+	// MUST equal its official coding-table code. This pins them so the invented
+	// single-letter values (CASH="C", DRIVERS_LICENSE="P") can never come back.
+	test("enum values equal the official coding-table codes", () => {
+		expect(PaymentType.CASH).toBe("1");
+		expect(PaymentType.CREDIT_CARD).toBe("0");
+		expect(PaymentType.DEBIT_CARD).toBe("2");
+		expect(PaymentType.BANK_TRANSFER).toBe("3");
+		expect(PaymentType.OTHER).toBe("9");
+		for (const code of Object.values(PaymentType)) {
+			expect(lookupPaymentType(code)).toBeDefined();
+		}
+
+		expect(VehicleType.CAR).toBe("0");
+		expect(VehicleType.VAN).toBe("1");
+		expect(VehicleType.TRUCK).toBe("4");
+		expect(VehicleType.WORK_MACHINE).toBe("A");
+		for (const code of Object.values(VehicleType)) {
+			expect(lookupVehicleType(code)).toBeDefined();
+		}
+
+		expect(DocumentType.ID_CARD).toBe("IDENT");
+		expect(DocumentType.PASSPORT).toBe("PASOR");
+		expect(DocumentType.DRIVERS_LICENSE).toBe("PATEN");
+		for (const code of Object.values(DocumentType)) {
+			expect(lookupDocumentType(code)).toBeDefined();
+		}
 	});
 });
 

@@ -244,37 +244,55 @@ for (const [name, buffer] of tables) {
 
 ## Data Types
 
-### PaymentType
+> Enum values are the **official CARGOS coding-table codes** (`TIPO_PAGAMENTO` /
+> `TIPO_VEICOLO` / `TIPO_DOCUMENTO`) and are serialized verbatim into the tracciato
+> record. They are kept in lock-step with `src/data/tables.json`.
+
+### PaymentType (TIPO_PAGAMENTO)
 
 ```typescript
 enum PaymentType {
-  CASH = 'C',
-  CARD = 'T',
-  BANK = 'B',
-  OTHER = 'A'
+  CREDIT_CARD = '0',   // Carta di Credito
+  CASH = '1',          // Contanti
+  DEBIT_CARD = '2',    // Carta di Debito
+  BANK_TRANSFER = '3', // Bonifico
+  BANK_RID = '4',      // RID Bancario
+  OTHER = '9'          // Altro
 }
 ```
 
-### VehicleType
+### VehicleType (TIPO_VEICOLO)
+
+The Polizia taxonomy — heavy vehicles included, **no "motorcycle"** entry.
 
 ```typescript
 enum VehicleType {
-  CAR = 'A',
-  MOTORCYCLE = 'M',
-  TRUCK = 'C',
-  OTHER = 'A'
+  CAR = '0',          // Autovetture
+  VAN = '1',          // Furgoni
+  BUS = '3',          // Autobus
+  TRUCK = '4',        // Autocarri
+  ROAD_TRACTOR = '5', // Trattori Stradali
+  ROAD_TRAIN = '6',   // Autotreni
+  ARTICULATED = '7',  // Autoarticolati
+  BENDY = '8',        // Autosnodati
+  MOTORHOME = '9',    // Autocaravan
+  WORK_MACHINE = 'A'  // Mezzi d'opera
 }
 ```
 
-### DocumentType
+### DocumentType (TIPO_DOCUMENTO)
+
+A driving licence (`PATEN`) is itself a valid identity document.
 
 ```typescript
 enum DocumentType {
-  PASSPORT = 'P',
-  ID_CARD = 'C',
-  DRIVERS_LICENSE = 'P',
-  VISA = 'V',
-  RESIDENCE_PERMIT = 'S'
+  ID_CARD = 'IDENT',            // Carta di identità
+  ID_CARD_ELECTRONIC = 'IDELE', // Carta identità elettronica (CIE)
+  ID_CARD_DIPLOMATIC = 'CIDIP', // Carta ID. diplomatica
+  PASSPORT = 'PASOR',           // Passaporto ordinario
+  PASSPORT_DIPLOMATIC = 'PASDI',
+  PASSPORT_SERVICE = 'PASSE',
+  DRIVERS_LICENSE = 'PATEN'     // Patente di guida
 }
 ```
 

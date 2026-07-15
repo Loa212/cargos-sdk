@@ -12,26 +12,50 @@ import crypto from "node:crypto";
 // TYPES AND INTERFACES
 // ============================================================================
 
+// Codes below are the OFFICIAL CARGOS coding-table values (TIPO_PAGAMENTO /
+// TIPO_VEICOLO / TIPO_DOCUMENTO), bundled in src/data/tables.json and re-derived
+// from scripts/tables-csv/*.csv. They are serialized VERBATIM into the tracciato
+// record (formatContract), so they MUST equal the portal codes exactly — the
+// previous single-letter values (CASH="C", DRIVERS_LICENSE="P", …) were invented
+// and CARGOS rejected them. Keep these in lock-step with the coding tables; if a
+// table changes, re-run scripts/parse-tables.ts and update these members.
+
+// TIPO_PAGAMENTO (tabellaid 0): single-char code, field CONTRATTO_TIPOP.
 export enum PaymentType {
-	CASH = "C",
-	CARD = "T",
-	BANK = "B",
-	OTHER = "A",
+	CREDIT_CARD = "0", // Carta di Credito
+	CASH = "1", // Contanti
+	DEBIT_CARD = "2", // Carta di Debito
+	BANK_TRANSFER = "3", // Bonifico
+	BANK_RID = "4", // RID Bancario
+	OTHER = "9", // Altro
 }
 
+// TIPO_VEICOLO (tabellaid 2): single-char code, field VEICOLO_TIPO. This is the
+// heavy-vehicle taxonomy the Polizia uses — there is NO "motorcycle" entry.
 export enum VehicleType {
-	CAR = "A",
-	MOTORCYCLE = "M",
-	TRUCK = "C",
-	OTHER = "A",
+	CAR = "0", // Autovetture
+	VAN = "1", // Furgoni
+	BUS = "3", // Autobus
+	TRUCK = "4", // Autocarri
+	ROAD_TRACTOR = "5", // Trattori Stradali
+	ROAD_TRAIN = "6", // Autotreni
+	ARTICULATED = "7", // Autoarticolati
+	BENDY = "8", // Autosnodati
+	MOTORHOME = "9", // Autocaravan
+	WORK_MACHINE = "A", // Mezzi d'opera
 }
 
+// TIPO_DOCUMENTO (tabellaid 3): 5-char code, field CONDUCENTE_*_DOCIDE_TIPO_COD.
+// A driving licence (PATEN) is itself a valid identity document here, so a driver
+// with only a licence can use documentType=DRIVERS_LICENSE.
 export enum DocumentType {
-	PASSPORT = "P",
-	ID_CARD = "C",
-	DRIVERS_LICENSE = "P",
-	VISA = "V",
-	RESIDENCE_PERMIT = "S",
+	ID_CARD = "IDENT", // Carta di identità
+	ID_CARD_ELECTRONIC = "IDELE", // Carta identità elettronica (CIE)
+	ID_CARD_DIPLOMATIC = "CIDIP", // Carta ID. diplomatica
+	PASSPORT = "PASOR", // Passaporto ordinario
+	PASSPORT_DIPLOMATIC = "PASDI", // Passaporto diplomatico
+	PASSPORT_SERVICE = "PASSE", // Passaporto di servizio
+	DRIVERS_LICENSE = "PATEN", // Patente di guida
 }
 
 export interface Location {
