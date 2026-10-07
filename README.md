@@ -58,6 +58,24 @@ const cityName = lookupLocation(412058091); // "ROMA"
 const italyCode = LOCATIONS['ITALIA']; // 100000100
 ```
 
+### Provinces and issuing authorities
+
+Documents print WHO issued them, not always WHERE. `resolveIssuingAuthority` turns that into a CARGOS place:
+
+```typescript
+import { getProvinceCapital, getProvinceSigla, resolveIssuingAuthority } from 'cargos-sdk';
+
+resolveIssuingAuthority('MC-GE');            // { name: 'GENOVA', code: 407010025 } — provincial Motorizzazione → capoluogo
+resolveIssuingAuthority('MIT-UCO');          // { name: 'ROMA', code: 412058091 } — the national office
+resolveIssuingAuthority('COMUNE DI BRESCIA'); // { name: 'BRESCIA', … } — a CIE's issuer is a comune
+resolveIssuingAuthority("MINISTERO DELL'INTERNO"); // undefined — a body, not a place
+
+getProvinceSigla(412058091); // 'RM'
+getProvinceCapital('MI');    // { name: 'MILANO', code: … }
+```
+
+`MC-XX`, `MCTC-XX`, `M.C.T.C. XX` and `UMC XX` are all read as the provincial office of sigla `XX`. The province table is derived from `LOCATIONS` (106 provinces; the 2016 Sardinian provinces are not in the CARGOS table).
+
 Table snapshot metadata is published in [`TABLES_LAST_UPDATED.md`](./TABLES_LAST_UPDATED.md). If the snapshot looks stale, please open an issue.
 
 To regenerate the bundled snapshot after replacing CSV exports in `scripts/tables-csv/`:
