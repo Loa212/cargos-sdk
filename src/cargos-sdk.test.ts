@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
 	BUNDLED_TABLES_METADATA,
+	CARGOS_RECORD_LENGTH,
 	CargosAuthError,
 	CargosClient,
 	DEFAULT_TIME_ZONE,
@@ -11,6 +12,7 @@ import {
 	formatContract,
 	formatDate,
 	formatDriver,
+	formatSecondaryDriver,
 	getDocumentTypeCode,
 	getLocationCode,
 	getPaymentTypeCode,
@@ -21,12 +23,14 @@ import {
 	lookupLocation,
 	lookupPaymentType,
 	lookupVehicleType,
+	MAIN_DRIVER_LENGTH,
 	PAYMENT_TYPES,
 	PaymentType,
 	padNumber,
 	padString,
 	parseTableCSV,
 	type RentalContract,
+	SECONDARY_DRIVER_LENGTH,
 	TABLES_LAST_UPDATED_AT,
 	VEHICLE_TYPES,
 	VehicleType,
@@ -221,14 +225,9 @@ describe("encryptAES", () => {
 // ============================================================================
 
 describe("formatDriver", () => {
-	test("returns string of correct length (370 characters)", () => {
-		const driver = createTestDriver();
-		const result = formatDriver(driver);
-		// 50+30+10+9+9+9+150+5+20+9+20+9+20 = 350... let me recalculate
-		// COGNOME:50 + NOME:30 + NASCITA_DATA:10 + NASCITA_LUOGO:9 + CITTADINANZA:9 +
-		// RESIDENZA_LUOGO:9 + RESIDENZA_INDIRIZZO:150 + DOCIDE_TIPO:5 + DOCIDE_NUMERO:20 +
-		// DOCIDE_LUOGORIL:9 + PATENTE_NUMERO:20 + PATENTE_LUOGORIL:9 + RECAPITO:20 = 350
-		expect(result.length).toBe(350);
+	test("returns the main driver block (350 characters)", () => {
+		expect(formatDriver(createTestDriver())).toHaveLength(MAIN_DRIVER_LENGTH);
+		expect(MAIN_DRIVER_LENGTH).toBe(350);
 	});
 
 	test("places surname in first 50 characters", () => {
@@ -283,16 +282,39 @@ describe("formatDriver", () => {
 // ============================================================================
 
 describe("formatContract", () => {
-	test("returns string of correct total length", () => {
-		const contract = createTestContract();
-		const result = formatContract(contract);
-		// Contract fields + main driver (350) + secondary driver space (190)
-		// Let me calculate: based on the code, secondary driver gets 190 spaces if absent
-		// but formatDriver returns 350 chars... there's a discrepancy
-		// Looking at code: record += " ".repeat(190) for absent secondary driver
-		// This seems like it should match formatDriver length...
-		// For now, let's just verify the output is consistent
-		expect(result.length).toBeGreaterThan(500);
+	// CARGOS refuses any other length: «FORMATO - Dimensione riga errata (1504/1505)».
+	test("is exactly 1505 characters without a second driver", () => {
+		const result = formatContract(
+			createTestContract({ secondaryDriver: undefined }),
+		);
+		expect(result).toHaveLength(CARGOS_RECORD_LENGTH);
+		expect(CARGOS_RECORD_LENGTH).toBe(1505);
+		expect(result.slice(1505 - SECONDARY_DRIVER_LENGTH)).toBe(" ".repeat(191));
+	});
+
+	test("is exactly 1505 characters with a second driver (no residence)", () => {
+		const second = createTestDriver({
+			surname: "Verdi",
+			residencePlace: { code: 111222333, name: "Milano" },
+			residenceAddress: "Via Milano 50",
+			phone: "+393331112222",
+		});
+		const result = formatContract(
+			createTestContract({ secondaryDriver: second }),
+		);
+		expect(result).toHaveLength(CARGOS_RECORD_LENGTH);
+		const block = result.slice(1505 - SECONDARY_DRIVER_LENGTH);
+		expect(block.substring(0, 50).trim()).toBe("Verdi");
+		// Document type follows citizenship directly: no residence fields.
+		expect(block.substring(108, 113).trim()).toBe(second.documentType);
+		expect(block).not.toContain("Via Milano 50");
+		expect(block.substring(171, 191).trim()).toBe("+393331112222");
+	});
+
+	test("the second driver block is 191 characters", () => {
+		expect(formatSecondaryDriver(createTestDriver())).toHaveLength(
+			SECONDARY_DRIVER_LENGTH,
+		);
 	});
 
 	test("places contract ID in first 50 characters", () => {
@@ -367,9 +389,8 @@ describe("formatContract", () => {
 		});
 		const resultWithSecondary = formatContract(contractWithSecondary);
 
-		// Both should have same structure, different lengths due to driver data vs spaces
-		expect(result.length).toBeGreaterThan(0);
-		expect(resultWithSecondary.length).toBeGreaterThan(0);
+		// A fixed-width record: the same length either way.
+		expect(result.length).toBe(resultWithSecondary.length);
 	});
 });
 

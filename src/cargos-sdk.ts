@@ -343,11 +343,23 @@ export function formatDate(
 	return withTime ? `${day} ${parts.hour}:${parts.minute}` : day;
 }
 
-export function formatDriver(
+/**
+ * One CARGOS record is 46 fixed-width fields, 1505 characters: 22 contract,
+ * agency and vehicle fields (964), the main driver (13 fields, 350) and the
+ * second driver (11 fields, 191 — no residence). CARGOS refuses any other
+ * length with «FORMATO - Dimensione riga errata».
+ */
+export const CARGOS_RECORD_LENGTH = 1505;
+/** Main driver block: 13 fields. */
+export const MAIN_DRIVER_LENGTH = 350;
+/** Second driver block: 11 fields — the main driver's without residence. */
+export const SECONDARY_DRIVER_LENGTH = 191;
+
+function driverFields(
 	driver: Driver,
-	options: FormatOptions = {},
+	timeZone: string,
+	withResidence: boolean,
 ): string {
-	const timeZone = options.timeZone ?? DEFAULT_TIME_ZONE;
 	let record = "";
 
 	// CONDUCENTE_COGNOME (50 chars)
@@ -365,13 +377,15 @@ export function formatDriver(
 	// CONDUCENTE_CITTADINANZA_COD (9 chars)
 	record += padNumber(driver.citizenship.code, 9);
 
-	// CONDUCENTE_RESIDENZA_LUOGO_COD (9 chars, optional)
-	record += driver.residencePlace
-		? padNumber(driver.residencePlace.code, 9)
-		: "         ";
+	if (withResidence) {
+		// CONDUCENTE_RESIDENZA_LUOGO_COD (9 chars, optional)
+		record += driver.residencePlace
+			? padNumber(driver.residencePlace.code, 9)
+			: " ".repeat(9);
 
-	// CONDUCENTE_RESIDENZA_INDIRIZZO (150 chars, optional)
-	record += padString(driver.residenceAddress || "", 150);
+		// CONDUCENTE_RESIDENZA_INDIRIZZO (150 chars, optional)
+		record += padString(driver.residenceAddress || "", 150);
+	}
 
 	// CONDUCENTE_DOCIDE_TIPO_COD (5 chars)
 	record += padString(driver.documentType, 5);
@@ -392,6 +406,25 @@ export function formatDriver(
 	record += padString(driver.phone || "", 20);
 
 	return record;
+}
+
+/** The main driver block (350 characters, with residence). */
+export function formatDriver(
+	driver: Driver,
+	options: FormatOptions = {},
+): string {
+	return driverFields(driver, options.timeZone ?? DEFAULT_TIME_ZONE, true);
+}
+
+/**
+ * The second driver block (191 characters). The tracciato has no residence
+ * for the second driver: `residencePlace` / `residenceAddress` are not sent.
+ */
+export function formatSecondaryDriver(
+	driver: Driver,
+	options: FormatOptions = {},
+): string {
+	return driverFields(driver, options.timeZone ?? DEFAULT_TIME_ZONE, false);
 }
 
 /**
@@ -474,12 +507,10 @@ export function formatContract(
 	// Main driver fields
 	record += formatDriver(contract.mainDriver, { timeZone });
 
-	// Secondary driver fields (if present)
-	if (contract.secondaryDriver) {
-		record += formatDriver(contract.secondaryDriver, { timeZone });
-	} else {
-		record += " ".repeat(190); // Padding for absent secondary driver
-	}
+	// Second driver fields (blank when there is none)
+	record += contract.secondaryDriver
+		? formatSecondaryDriver(contract.secondaryDriver, { timeZone })
+		: " ".repeat(SECONDARY_DRIVER_LENGTH);
 
 	return record;
 }

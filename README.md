@@ -672,8 +672,11 @@ const TABLES_LAST_UPDATED_AT: string;
 
 Contracts are formatted as fixed-width 1505-character records following CARGOS specifications:
 
-- Fields: 46 data elements
-- Total width: 1505 characters
+- Fields: 46 data elements — 22 contract/agency/vehicle (964 chars), the main
+  driver (13 fields, 350 chars) and the second driver (11 fields, 191 chars:
+  the second driver has no residence fields)
+- Total width: 1505 characters, with or without a second driver (CARGOS
+  refuses any other length: «FORMATO - Dimensione riga errata»)
 - Multiple records per batch (max 100)
 - Character set: UTF-8
 - Date format: DD/MM/YYYY or DD/MM/YYYY HH:MM
