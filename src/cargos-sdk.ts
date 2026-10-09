@@ -136,11 +136,91 @@ export interface TraceResponse {
 export interface CheckResponse {
 	responses: TraceResponse[];
 	error?: ErrorResponse;
+	/** HTTP status, set with `error` (401/403 = the credentials, not the contract). */
+	status?: number;
 }
 
 export interface SendResponse {
 	responses: TraceResponse[];
 	error?: ErrorResponse;
+	/** HTTP status, set with `error` (401/403 = the credentials, not the contract). */
+	status?: number;
+}
+
+/**
+ * The login (GET api/Token) failed: CARGOS refused the username/password, or
+ * answered with something that is not a token. Thrown instead of encrypting
+ * `undefined`. `status` is null when the HTTP call itself succeeded (CARGOS
+ * returns its error object with a 200).
+ */
+export class CargosAuthError extends Error {
+	readonly status: number | null;
+	readonly errorCode: number | null;
+	/** CARGOS's own error_description (or error), when it sent one. */
+	readonly description: string | null;
+
+	constructor(
+		message: string,
+		details: {
+			status?: number | null;
+			errorCode?: number | null;
+			description?: string | null;
+		} = {},
+	) {
+		super(message);
+		this.name = "CargosAuthError";
+		this.status = details.status ?? null;
+		this.errorCode = details.errorCode ?? null;
+		this.description = details.description ?? null;
+	}
+}
+
+async function readJson(response: Response): Promise<unknown> {
+	try {
+		return await response.json();
+	} catch {
+		return null;
+	}
+}
+
+// CARGOS's `errore` object, at the top level or nested under `errore`.
+function errorFields(body: unknown): {
+	description: string | null;
+	errorCode: number | null;
+} {
+	if (!body || typeof body !== "object") {
+		return { description: null, errorCode: null };
+	}
+	const b = body as Record<string, unknown>;
+	const inner =
+		b.errore && typeof b.errore === "object"
+			? (b.errore as Record<string, unknown>)
+			: b;
+	const text = (v: unknown) =>
+		typeof v === "string" && v.trim() !== "" ? v.trim() : null;
+	const description =
+		text(inner.error_description) ??
+		text(inner.error) ??
+		text(b.Message) ??
+		text(b.message);
+	const errorCode =
+		typeof inner.error_code === "number" ? inner.error_code : null;
+	return { description, errorCode };
+}
+
+async function errorResponse(response: Response): Promise<ErrorResponse> {
+	const body = await readJson(response);
+	if (body && typeof body === "object" && "error_description" in body) {
+		return body as ErrorResponse;
+	}
+	const { description, errorCode } = errorFields(body);
+	return {
+		error: `http_${response.status}`,
+		error_description:
+			description ?? `HTTP ${response.status} ${response.statusText}`.trim(),
+		error_code: errorCode ?? response.status,
+		timestamp: new Date().toISOString(),
+	};
 }
 
 export interface TableResponse {
@@ -172,6 +252,9 @@ export function encryptAES(token: string, apiKey: string): string {
 		throw new Error(
 			"API Key must be at least 48 characters for AES encryption",
 		);
+	}
+	if (typeof token !== "string" || token === "") {
+		throw new Error("encryptAES: token must be a non-empty string");
 	}
 
 	try {
@@ -439,36 +522,60 @@ export class CargosClient {
 			return this.token;
 		}
 
+		const auth = Buffer.from(`${this.username}:${this.password}`).toString(
+			"base64",
+		);
+		let response: Response;
 		try {
-			const auth = Buffer.from(`${this.username}:${this.password}`).toString(
-				"base64",
-			);
-			const response = await fetch(`${this.baseUrl}/api/Token`, {
+			response = await fetch(`${this.baseUrl}/api/Token`, {
 				method: "GET",
 				headers: {
 					Authorization: `Basic ${auth}`,
 					"Content-Type": "application/json",
 				},
 			});
-
-			if (!response.ok) {
-				throw new Error(`Token request failed: ${response.statusText}`);
-			}
-
-			const data = (await response.json()) as TokenResponse;
-			this.token = data.access_token;
-
-			// Set expiry to 5 minutes before actual expiry for safety
-			if (data.expires_date) {
-				const expiry = new Date(data.expires_date);
-				expiry.setMinutes(expiry.getMinutes() - 5);
-				this.tokenExpiry = expiry;
-			}
-
-			return this.token;
 		} catch (error) {
 			throw new Error(`Failed to obtain token: ${error}`);
 		}
+
+		const body = await readJson(response);
+		const { description, errorCode } = errorFields(body);
+
+		if (!response.ok) {
+			throw new CargosAuthError(
+				`Token request failed: HTTP ${response.status}${description ? ` — ${description}` : ""}`,
+				{ status: response.status, errorCode, description },
+			);
+		}
+
+		// "GET api/Token restituisce un oggetto token o errore" — the error
+		// object comes back with a 200, so a missing access_token is a refused
+		// login, not a token to encrypt.
+		const data = (body ?? {}) as Partial<TokenResponse>;
+		if (typeof data.access_token !== "string" || data.access_token === "") {
+			// Field NAMES only: the values may hold a token under another name.
+			const fields =
+				body && typeof body === "object" ? Object.keys(body).join(", ") : "";
+			throw new CargosAuthError(
+				description
+					? `Token request refused: ${description}`
+					: `Token response has no access_token${fields ? ` (fields: ${fields})` : ""}`,
+				{ status: null, errorCode, description },
+			);
+		}
+
+		this.token = data.access_token;
+		this.tokenExpiry = undefined;
+		// Set expiry to 5 minutes before actual expiry for safety
+		if (data.expires_date) {
+			const expiry = new Date(data.expires_date);
+			if (!Number.isNaN(expiry.getTime())) {
+				expiry.setMinutes(expiry.getMinutes() - 5);
+				this.tokenExpiry = expiry;
+			}
+		}
+
+		return this.token;
 	}
 
 	/**
@@ -501,8 +608,8 @@ export class CargosClient {
 			});
 
 			if (!response.ok) {
-				const error = (await response.json()) as ErrorResponse;
-				return { responses: [], error };
+				const error = await errorResponse(response);
+				return { responses: [], error, status: response.status };
 			}
 
 			const data = (await response.json()) as TraceResponse[];
@@ -538,8 +645,8 @@ export class CargosClient {
 			});
 
 			if (!response.ok) {
-				const error = (await response.json()) as ErrorResponse;
-				return { responses: [], error };
+				const error = await errorResponse(response);
+				return { responses: [], error, status: response.status };
 			}
 
 			const data = (await response.json()) as TraceResponse[];
@@ -568,7 +675,7 @@ export class CargosClient {
 			);
 
 			if (!response.ok) {
-				const error = (await response.json()) as ErrorResponse;
+				const error = await errorResponse(response);
 				return { esito: false, error };
 			}
 

@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import {
 	BUNDLED_TABLES_METADATA,
+	CargosAuthError,
 	CargosClient,
 	DEFAULT_TIME_ZONE,
 	DOCUMENT_TYPES,
@@ -206,6 +207,12 @@ describe("encryptAES", () => {
 	test("accepts apiKey longer than 48 characters", () => {
 		const longKey = "a".repeat(100);
 		expect(() => encryptAES("token", longKey)).not.toThrow();
+	});
+
+	test("refuses a missing token instead of a crypto TypeError", () => {
+		expect(() =>
+			encryptAES(undefined as unknown as string, validApiKey),
+		).toThrow("encryptAES: token must be a non-empty string");
 	});
 });
 
@@ -597,5 +604,99 @@ describe("CargosClient", () => {
 					timeZone: "Europe/Rome",
 				}),
 		).not.toThrow();
+	});
+});
+
+describe("CargosClient login", () => {
+	const realFetch = globalThis.fetch;
+	afterEach(() => {
+		globalThis.fetch = realFetch;
+	});
+
+	// Answers every call with `body`; records the URLs it was asked for.
+	function stubFetch(status: number, body: unknown) {
+		const calls: string[] = [];
+		globalThis.fetch = (async (url: string | URL) => {
+			calls.push(String(url));
+			return new Response(JSON.stringify(body), {
+				status,
+				headers: { "Content-Type": "application/json" },
+			});
+		}) as typeof fetch;
+		return calls;
+	}
+
+	const client = () => new CargosClient("user", "pass", "k".repeat(48));
+
+	test("an error object returned with 200 is a refused login, not a token", async () => {
+		const calls = stubFetch(200, {
+			error: "invalid_grant",
+			error_description: "Credenziali non valide",
+			error_code: 3,
+			timestamp: "2026-10-09T10:00:00",
+		});
+		const err = await client()
+			.checkContracts([])
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(CargosAuthError);
+		expect((err as CargosAuthError).description).toBe("Credenziali non valide");
+		expect((err as CargosAuthError).status).toBeNull();
+		expect((err as CargosAuthError).errorCode).toBe(3);
+		// Never got as far as the Check call.
+		expect(calls).toEqual([
+			"https://cargos.poliziadistato.it/CARGOS_API/api/Token",
+		]);
+	});
+
+	test("a 200 with no access_token names the fields, never their values", async () => {
+		stubFetch(200, { AccessToken: "secret-value" });
+		const err = (await client()
+			.getToken()
+			.catch((e: unknown) => e)) as CargosAuthError;
+		expect(err).toBeInstanceOf(CargosAuthError);
+		expect(err.message).toContain("AccessToken");
+		expect(err.message).not.toContain("secret-value");
+	});
+
+	test("an HTTP 401 on the login keeps the status", async () => {
+		stubFetch(401, { error_description: "Utente non autorizzato" });
+		const err = (await client()
+			.getToken()
+			.catch((e: unknown) => e)) as CargosAuthError;
+		expect(err).toBeInstanceOf(CargosAuthError);
+		expect(err.status).toBe(401);
+		expect(err.description).toBe("Utente non autorizzato");
+	});
+
+	test("a real token is returned", async () => {
+		stubFetch(200, {
+			token_type: "Bearer",
+			expires_date: "2099-01-01T00:00:00",
+			access_token: "tok",
+		});
+		expect(await client().getToken()).toBe("tok");
+	});
+
+	test("a non-JSON error on Check comes back as an error with its status", async () => {
+		let n = 0;
+		globalThis.fetch = (async () => {
+			n += 1;
+			if (n === 1) {
+				return new Response(
+					JSON.stringify({
+						access_token: "tok",
+						expires_date: "2099-01-01T00:00:00",
+					}),
+					{ status: 200 },
+				);
+			}
+			return new Response("<html>denied</html>", {
+				status: 403,
+				statusText: "Forbidden",
+			});
+		}) as typeof fetch;
+		const res = await client().checkContracts([]);
+		expect(res.status).toBe(403);
+		expect(res.error?.error_description).toContain("403");
 	});
 });
