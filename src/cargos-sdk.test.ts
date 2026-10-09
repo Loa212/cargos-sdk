@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
 	BUNDLED_TABLES_METADATA,
+	CargosClient,
+	DEFAULT_TIME_ZONE,
 	DOCUMENT_TYPES,
 	DocumentType,
 	type Driver,
@@ -37,7 +39,7 @@ function createTestDriver(overrides: Partial<Driver> = {}): Driver {
 	return {
 		surname: "Rossi",
 		name: "Mario",
-		birthDate: new Date(1985, 5, 15), // June 15, 1985
+		birthDate: new Date("1985-06-15"), // date-only = UTC midnight
 		birthPlace: { code: 123456789, name: "Roma" },
 		citizenship: { code: 100000100, name: "Italia" },
 		documentType: DocumentType.ID_CARD,
@@ -54,12 +56,12 @@ function createTestContract(
 ): RentalContract {
 	return {
 		id: "CONTRACT-001",
-		createdDate: new Date(2024, 0, 15, 10, 30), // Jan 15, 2024 10:30
+		createdDate: new Date("2024-01-15T09:30:00Z"), // 10:30 in Rome
 		paymentType: PaymentType.CREDIT_CARD,
-		checkoutDate: new Date(2024, 0, 15, 11, 0),
+		checkoutDate: new Date("2024-01-15T10:00:00Z"),
 		checkoutLocation: { code: 123456789, name: "Roma Fiumicino" },
 		checkoutAddress: "Via dell'Aeroporto 1",
-		checkinDate: new Date(2024, 0, 20, 18, 0),
+		checkinDate: new Date("2024-01-20T17:00:00Z"),
 		checkinLocation: { code: 987654321, name: "Milano Malpensa" },
 		checkinAddress: "Via Malpensa 2",
 		operatorId: "OP001",
@@ -122,23 +124,44 @@ describe("padNumber", () => {
 
 describe("formatDate", () => {
 	test("formats date as DD/MM/YYYY", () => {
-		const date = new Date(2024, 0, 15); // Jan 15, 2024
-		expect(formatDate(date)).toBe("15/01/2024");
-	});
-
-	test("formats date with time as DD/MM/YYYY HH:MM", () => {
-		const date = new Date(2024, 0, 15, 9, 5); // Jan 15, 2024 09:05
-		expect(formatDate(date, true)).toBe("15/01/2024 09:05");
+		expect(formatDate(new Date("2024-01-15"))).toBe("15/01/2024");
 	});
 
 	test("pads single digit day and month", () => {
-		const date = new Date(2024, 2, 5); // March 5, 2024
-		expect(formatDate(date)).toBe("05/03/2024");
+		expect(formatDate(new Date("2024-03-05"))).toBe("05/03/2024");
 	});
 
-	test("pads single digit hours and minutes", () => {
-		const date = new Date(2024, 0, 15, 8, 3);
-		expect(formatDate(date, true)).toBe("15/01/2024 08:03");
+	test("writes the time in Rome, not in the host's zone (winter, UTC+1)", () => {
+		expect(formatDate(new Date("2024-01-15T08:05:00Z"), true)).toBe(
+			"15/01/2024 09:05",
+		);
+	});
+
+	test("writes the time in Rome in summer (UTC+2)", () => {
+		expect(formatDate(new Date("2024-07-15T07:03:00Z"), true)).toBe(
+			"15/07/2024 09:03",
+		);
+	});
+
+	test("midnight is 00, never 24", () => {
+		expect(formatDate(new Date("2024-01-14T23:00:00Z"), true)).toBe(
+			"15/01/2024 00:00",
+		);
+	});
+
+	test("the date follows the zone across midnight", () => {
+		// 23:30 UTC on the 14th is already the 15th in Rome.
+		expect(formatDate(new Date("2024-01-14T23:30:00Z"))).toBe("15/01/2024");
+	});
+
+	test("honours another zone when asked", () => {
+		expect(formatDate(new Date("2024-01-15T08:05:00Z"), true, "UTC")).toBe(
+			"15/01/2024 08:05",
+		);
+	});
+
+	test("defaults to Europe/Rome", () => {
+		expect(DEFAULT_TIME_ZONE).toBe("Europe/Rome");
 	});
 });
 
@@ -215,7 +238,7 @@ describe("formatDriver", () => {
 
 	test("formats birth date correctly at position 80-90", () => {
 		const driver = createTestDriver({
-			birthDate: new Date(1990, 11, 25), // Dec 25, 1990
+			birthDate: new Date("1990-12-25"),
 		});
 		const result = formatDriver(driver);
 		expect(result.substring(80, 90).trim()).toBe("25/12/1990");
@@ -280,11 +303,20 @@ describe("formatContract", () => {
 
 	test("formats checkout date with time", () => {
 		const contract = createTestContract({
-			checkoutDate: new Date(2024, 5, 20, 14, 30), // June 20, 2024 14:30
+			checkoutDate: new Date("2024-06-20T12:30:00Z"), // 14:30 in Rome (CEST)
 		});
 		const result = formatContract(contract);
 		// Position 67-83 (after payment type)
 		expect(result.substring(67, 83).trim()).toBe("20/06/2024 14:30");
+	});
+
+	test("writes every date in the zone it is given", () => {
+		const contract = createTestContract();
+		const rome = formatContract(contract);
+		const utc = formatContract(contract, { timeZone: "UTC" });
+		expect(rome.substring(50, 66).trim()).toBe("15/01/2024 10:30");
+		expect(utc.substring(50, 66).trim()).toBe("15/01/2024 09:30");
+		expect(utc.substring(67, 83).trim()).toBe("15/01/2024 10:00");
 	});
 
 	test("includes vehicle GPS flag", () => {
@@ -545,5 +577,25 @@ describe("isValidContractData", () => {
 		const errors = isValidContractData(contract);
 
 		expect(errors.length).toBeGreaterThanOrEqual(3);
+	});
+});
+
+describe("CargosClient", () => {
+	test("rejects an unknown time zone at construction", () => {
+		expect(
+			() =>
+				new CargosClient("user", "pass", "k".repeat(48), {
+					timeZone: "Mars/Olympus",
+				}),
+		).toThrow();
+	});
+
+	test("accepts a valid time zone", () => {
+		expect(
+			() =>
+				new CargosClient("user", "pass", "k".repeat(48), {
+					timeZone: "Europe/Rome",
+				}),
+		).not.toThrow();
 	});
 });

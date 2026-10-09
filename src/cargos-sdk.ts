@@ -207,21 +207,64 @@ export function padNumber(value: number, length: number): string {
 	return String(value).padStart(length, "0");
 }
 
-export function formatDate(date: Date, withTime: boolean = false): string {
-	const day = String(date.getDate()).padStart(2, "0");
-	const month = String(date.getMonth() + 1).padStart(2, "0");
-	const year = date.getFullYear();
+/**
+ * The zone CARGOS dates are written in. The record carries wall-clock times
+ * with no offset, and CARGOS reads them as Italian local time.
+ */
+export const DEFAULT_TIME_ZONE = "Europe/Rome";
 
-	if (withTime) {
-		const hours = String(date.getHours()).padStart(2, "0");
-		const minutes = String(date.getMinutes()).padStart(2, "0");
-		return `${day}/${month}/${year} ${hours}:${minutes}`;
-	}
-
-	return `${day}/${month}/${year}`;
+export interface FormatOptions {
+	/**
+	 * IANA time zone the record's dates and times are written in.
+	 * Default: Europe/Rome. Never the host's zone: a server running in UTC
+	 * would otherwise report every rental one or two hours early.
+	 */
+	timeZone?: string;
 }
 
-export function formatDriver(driver: Driver): string {
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function dateFormatter(timeZone: string): Intl.DateTimeFormat {
+	let formatter = dateFormatters.get(timeZone);
+	if (!formatter) {
+		// Throws RangeError for an unknown zone.
+		formatter = new Intl.DateTimeFormat("en-GB", {
+			timeZone,
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			hourCycle: "h23",
+		});
+		dateFormatters.set(timeZone, formatter);
+	}
+	return formatter;
+}
+
+/**
+ * DD/MM/YYYY (or DD/MM/YYYY HH:MM) in `timeZone`, default Europe/Rome.
+ * A date-only value (a birth date) should be passed as UTC midnight,
+ * e.g. `new Date("1990-05-01")`.
+ */
+export function formatDate(
+	date: Date,
+	withTime: boolean = false,
+	timeZone: string = DEFAULT_TIME_ZONE,
+): string {
+	const parts: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {};
+	for (const part of dateFormatter(timeZone).formatToParts(date)) {
+		parts[part.type] = part.value;
+	}
+	const day = `${parts.day}/${parts.month}/${parts.year}`;
+	return withTime ? `${day} ${parts.hour}:${parts.minute}` : day;
+}
+
+export function formatDriver(
+	driver: Driver,
+	options: FormatOptions = {},
+): string {
+	const timeZone = options.timeZone ?? DEFAULT_TIME_ZONE;
 	let record = "";
 
 	// CONDUCENTE_COGNOME (50 chars)
@@ -231,7 +274,7 @@ export function formatDriver(driver: Driver): string {
 	record += padString(driver.name, 30);
 
 	// CONDUCENTE_NASCITA_DATA (10 chars - DD/MM/YYYY)
-	record += formatDate(driver.birthDate).padEnd(10);
+	record += formatDate(driver.birthDate, false, timeZone).padEnd(10);
 
 	// CONDUCENTE_NASCITA_LUOGO_COD (9 chars)
 	record += padNumber(driver.birthPlace.code, 9);
@@ -272,20 +315,24 @@ export function formatDriver(driver: Driver): string {
  * Format rental contract into fixed-width string (1505 characters)
  * Following the CARGOS tracciato record specification
  */
-export function formatContract(contract: RentalContract): string {
+export function formatContract(
+	contract: RentalContract,
+	options: FormatOptions = {},
+): string {
+	const timeZone = options.timeZone ?? DEFAULT_TIME_ZONE;
 	let record = "";
 
 	// CONTRATTO_ID (50 chars)
 	record += padString(contract.id, 50);
 
 	// CONTRATTO_DATA (16 chars - DD/MM/YYYY HH:MM)
-	record += formatDate(contract.createdDate, true).padEnd(16);
+	record += formatDate(contract.createdDate, true, timeZone).padEnd(16);
 
 	// CONTRATTO_TIPOP (1 char)
 	record += contract.paymentType;
 
 	// CONTRATTO_CHECKOUT_DATA (16 chars)
-	record += formatDate(contract.checkoutDate, true).padEnd(16);
+	record += formatDate(contract.checkoutDate, true, timeZone).padEnd(16);
 
 	// CONTRATTO_CHECKOUT_LUOGO_COD (9 chars)
 	record += padNumber(contract.checkoutLocation.code, 9);
@@ -294,7 +341,7 @@ export function formatContract(contract: RentalContract): string {
 	record += padString(contract.checkoutAddress, 150);
 
 	// CONTRATTO_CHECKIN_DATA (16 chars)
-	record += formatDate(contract.checkinDate, true).padEnd(16);
+	record += formatDate(contract.checkinDate, true, timeZone).padEnd(16);
 
 	// CONTRATTO_CHECKIN_LUOGO_COD (9 chars)
 	record += padNumber(contract.checkinLocation.code, 9);
@@ -342,11 +389,11 @@ export function formatContract(contract: RentalContract): string {
 	record += contract.vehicle.hasEngineBlock ? "1" : "0";
 
 	// Main driver fields
-	record += formatDriver(contract.mainDriver);
+	record += formatDriver(contract.mainDriver, { timeZone });
 
 	// Secondary driver fields (if present)
 	if (contract.secondaryDriver) {
-		record += formatDriver(contract.secondaryDriver);
+		record += formatDriver(contract.secondaryDriver, { timeZone });
 	} else {
 		record += " ".repeat(190); // Padding for absent secondary driver
 	}
@@ -358,6 +405,8 @@ export function formatContract(contract: RentalContract): string {
 // CARGOS API CLIENT
 // ============================================================================
 
+export type CargosClientOptions = FormatOptions;
+
 export class CargosClient {
 	private baseUrl: string = "https://cargos.poliziadistato.it/CARGOS_API";
 	private username: string;
@@ -365,11 +414,20 @@ export class CargosClient {
 	private apiKey: string;
 	private token?: string;
 	private tokenExpiry?: Date;
+	private timeZone: string;
 
-	constructor(username: string, password: string, apiKey: string) {
+	constructor(
+		username: string,
+		password: string,
+		apiKey: string,
+		options: CargosClientOptions = {},
+	) {
 		this.username = username;
 		this.password = password;
 		this.apiKey = apiKey;
+		this.timeZone = options.timeZone ?? DEFAULT_TIME_ZONE;
+		// Fail at construction on an unknown zone, not on the first send.
+		dateFormatter(this.timeZone);
 	}
 
 	/**
@@ -427,7 +485,9 @@ export class CargosClient {
 	 */
 	async checkContracts(contracts: RentalContract[]): Promise<CheckResponse> {
 		const encryptedToken = await this.getEncryptedToken();
-		const formattedRecords = contracts.map((c) => formatContract(c));
+		const formattedRecords = contracts.map((c) =>
+			formatContract(c, { timeZone: this.timeZone }),
+		);
 
 		try {
 			const response = await fetch(`${this.baseUrl}/api/Check`, {
@@ -462,7 +522,9 @@ export class CargosClient {
 		}
 
 		const encryptedToken = await this.getEncryptedToken();
-		const formattedRecords = contracts.map((c) => formatContract(c));
+		const formattedRecords = contracts.map((c) =>
+			formatContract(c, { timeZone: this.timeZone }),
+		);
 
 		try {
 			const response = await fetch(`${this.baseUrl}/api/Send`, {

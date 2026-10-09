@@ -151,6 +151,20 @@ if (result.responses[0].esito) {
 }
 ```
 
+## Time zone
+
+The record carries dates and times with no offset, and CARGOS reads them as Italian local time. The SDK writes every date in **Europe/Rome** by default, whatever zone the host runs in, so a server in UTC does not report a 14:00 checkout as 12:00.
+
+```typescript
+// Another zone, if you ever need one:
+const client = new CargosClient(username, password, apiKey, { timeZone: 'Europe/Rome' });
+
+// The same option on the formatter:
+formatContract(contract, { timeZone: 'Europe/Rome' });
+```
+
+Pass date-only values (a birth date) as UTC midnight, e.g. `new Date('1990-05-01')`. An unknown zone throws when the client is constructed.
+
 ## Authentication
 
 Get credentials from **Questura** (Provincial Police Station):
